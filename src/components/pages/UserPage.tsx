@@ -1,6 +1,12 @@
 import { useEffect, useState, VFC } from 'react';
 import styled from 'styled-components';
-import { Route, Routes, useParams, useNavigate, Navigate } from 'react-router-dom';
+import {
+  Route,
+  Routes,
+  useParams,
+  useNavigate,
+  Navigate,
+} from 'react-router-dom';
 import { useLazyQuery } from '@apollo/client';
 import AppCardList from '../organisms/AppCardList';
 import CardList from '../organisms/CardList';
@@ -13,7 +19,7 @@ import { useProfile } from '../../contexts/ProfileContext';
 import { FETCH_SVCS_BY_PROFILE_ID } from '../../queries/svc';
 import Padding from '../atoms/Padding';
 import { Apps } from '../../utils/types';
-import HyperLinkList from '../molecules/HyperLinkList';
+import TeamLinkList from '../organisms/TeamLinkList';
 
 const UserTemplate: VFC = () => {
   type Team = {
@@ -25,8 +31,8 @@ const UserTemplate: VFC = () => {
     username: string;
     icon: string;
     selfIntro: string;
-    inviters: Team[],
-    teams: Team[],
+    inviters: Team[];
+    teams: Team[];
   };
 
   const initialState = {
@@ -69,13 +75,17 @@ const UserTemplate: VFC = () => {
     },
   ];
 
-  const teamsMenuProps = user.teams.map((team) => (
-    { color: 'gray', name: team.teamName, to: `/team/${team.id}` }
-  ));
+  const teamsMenuProps = user.teams.map((team) => ({
+    color: '#000',
+    name: team.teamName,
+    to: `/team/${team.id}`,
+  }));
 
-  const invitersMenuProps = user.inviters.map((inviter) => (
-    { color: 'gray', name: inviter.teamName, to: `/team/${inviter.id}` }
-  ));
+  const invitersMenuProps = user.inviters.map((inviter) => ({
+    color: '#000',
+    name: inviter.teamName,
+    to: `/team/${inviter.id}`,
+  }));
 
   const appsMenuProps = apps.map((app) => {
     return {
@@ -123,13 +133,38 @@ const UserTemplate: VFC = () => {
           <StyledContentWrapper>
             {/* Outletを用いるとコンポ―ネント独自のpropsを渡せないのでRoutesを使用 */}
             <Routes>
-              <Route path="" element={<CardList cardList={profileMenuProps} />} />
+              <Route
+                path=""
+                element={<CardList cardList={profileMenuProps} />}
+              />
               <Route
                 path="/apps"
                 element={<AppCardList apps={appsMenuProps} />}
               />
-              <Route path="/teams" element={<HyperLinkList menuList={teamsMenuProps} />} />
-              <Route path="/inviters" element={<HyperLinkList menuList={invitersMenuProps} />} />
+              <Route
+                path="/teams"
+                element={(
+                  <StyledTeamWrapper>
+                    <TeamLinkList
+                      menuList={teamsMenuProps}
+                      noTeamText="所属しているチームがありません"
+                      width="80%"
+                    />
+                  </StyledTeamWrapper>
+                )}
+              />
+              <Route
+                path="/inviters"
+                element={(
+                  <StyledTeamWrapper>
+                    <TeamLinkList
+                      menuList={invitersMenuProps}
+                      noTeamText="招待されているチームがありません"
+                      width="80%"
+                    />
+                  </StyledTeamWrapper>
+                )}
+              />
               <Route path="*" element={<Navigate to="" replace />} />
             </Routes>
           </StyledContentWrapper>
@@ -154,7 +189,15 @@ const StyledWrapper = styled.div`
 
 const StyledContentWrapper = styled.div`
   flex: 1;
+  margin-top: 5px;
   overflow-y: scroll;
+`;
+
+const StyledTeamWrapper = styled.div`
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
 `;
 
 export default UserTemplate;
