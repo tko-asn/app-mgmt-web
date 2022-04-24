@@ -1,6 +1,5 @@
 import { useEffect, useState, VFC } from 'react';
 import { useLazyQuery } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
 import {
   FETCH_PROFILES_BY_IDS,
   FETCH_PROFILES_BY_USERNAME,
@@ -41,7 +40,6 @@ const TeamForm: VFC<TeamFormProps> = ({
 }) => {
   const [fetchProfilesByUsername] = useLazyQuery(FETCH_PROFILES_BY_USERNAME);
   const [fetchProfilesByIds] = useLazyQuery(FETCH_PROFILES_BY_IDS);
-  const navigate = useNavigate();
 
   type Profile = {
     id: string;
@@ -106,11 +104,6 @@ const TeamForm: VFC<TeamFormProps> = ({
       );
       setTeam({ ...team, memberIds: newMemberIds });
     }
-  };
-
-  const submitData = async () => {
-    await submitTeamData(team);
-    navigate('/top');
   };
 
   const teamNameInputProps = {
@@ -229,7 +222,7 @@ const TeamForm: VFC<TeamFormProps> = ({
           <UserCardList cards={memberCards} noCardText="メンバーがいません" />
         </Padding>
         <Padding>
-          <Button handleClick={() => submitData()} {...buttonProps} />
+          <Button handleClick={() => submitTeamData(team)} {...buttonProps} />
         </Padding>
       </>
     </FormCard>

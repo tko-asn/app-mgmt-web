@@ -1,5 +1,6 @@
 import type { VFC } from 'react';
 import { useMutation } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
 import TeamForm from '../organisms/TeamForm';
 import { useProfile } from '../../contexts/ProfileContext';
 import Template from '../templates/Template';
@@ -15,6 +16,7 @@ import {
 const TeamCreationPage: VFC = () => {
   const { profile } = useProfile();
   const [createTeam] = useMutation(CREATE_TEAM);
+  const navigate = useNavigate();
 
   const teamState = {
     teamName: '',
@@ -25,6 +27,7 @@ const TeamCreationPage: VFC = () => {
 
   const submitTeamData = async (variables: TeamInput) => {
     await createTeam({ variables });
+    navigate('/top');
   };
 
   const buttonProps = {
