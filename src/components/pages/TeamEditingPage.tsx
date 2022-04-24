@@ -1,5 +1,5 @@
 import { useEffect, useState, VFC } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { FETCH_TEAM, UPDATE_TEAM } from '../../queries/team';
 import { TeamInput } from '../../utils/types';
@@ -20,11 +20,13 @@ const TeamEditingPage: VFC = () => {
   const [team, setTeam] = useState<TeamInput | undefined>(undefined);
   const [fetchTeam] = useLazyQuery(FETCH_TEAM);
   const [updateTeam] = useMutation(UPDATE_TEAM);
+  const navigate = useNavigate();
 
   const { teamId } = useParams();
 
   const submitTeamData = async (teamData: TeamInput) => {
     await updateTeam({ variables: { id: teamId, ...teamData } });
+    navigate(`/team/${teamId}`);
   };
 
   useEffect(() => {

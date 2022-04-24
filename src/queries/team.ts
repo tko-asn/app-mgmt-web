@@ -1,8 +1,11 @@
 import { gql } from '@apollo/client';
 
-export const FETCH_TEAMS = gql`
-  query FetchTeams($teamName: String!) {
-    getTeamsByTeamName(teamName: $teamName) {
+export const FETCH_TEAMS_BY_TEAM_NAME_AND_MEMBER_ID = gql`
+  query FetchTeamsByTeamNameAndMemberId(
+    $teamName: String!
+    $memberId: String!
+  ) {
+    getTeamsByTeamNameAndMemberId(teamName: $teamName, memberId: $memberId) {
       id
       teamName
     }
@@ -97,6 +100,42 @@ export const UPDATE_TEAM = gql`
         id
         username
         icon
+      }
+    }
+  }
+`;
+
+export const ADD_MEMBERS_TO_TEAM = gql`
+  mutation AddMembersToTeam($id: ID!, $profileIds: [String!]!) {
+    addMembersToTeam(id: $id, profileIds: $profileIds) {
+      id
+      members {
+        id
+        username
+      }
+    }
+  }
+`;
+
+export const DELETE_MEMBERS_FROM_TEAM = gql`
+  mutation DeleteMembersFromTeam($id: ID!, $profileIds: [String!]!) {
+    deleteMembersFromTeam(id: $id, profileIds: $profileIds) {
+      id
+      members {
+        id
+        username
+      }
+    }
+  }
+`;
+
+export const DELETE_INVITEES_FROM_TEAM = gql`
+  mutation DeleteInviteesFromTeam($id: ID!, $profileIds: [String!]!) {
+    deleteInviteesFromTeam(id: $id, profileIds: $profileIds) {
+      id
+      invitees {
+        id
+        username
       }
     }
   }

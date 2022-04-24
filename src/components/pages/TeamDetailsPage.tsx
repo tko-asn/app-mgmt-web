@@ -1,9 +1,9 @@
-import { useLazyQuery } from '@apollo/client';
+import { useLazyQuery, useMutation } from '@apollo/client';
 import { useEffect, useState, VFC } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useProfile } from '../../contexts/ProfileContext';
-import { FETCH_TEAM } from '../../queries/team';
+import { FETCH_TEAM, ADD_MEMBERS_TO_TEAM, DELETE_INVITEES_FROM_TEAM, DELETE_MEMBERS_FROM_TEAM } from '../../queries/team';
 import { getDatetime } from '../../utils/app';
 import { Team } from '../../utils/types';
 import Button from '../atoms/Button';
@@ -25,6 +25,9 @@ const TeamDetailsPage: VFC = () => {
   };
   const [team, setTeam] = useState<Team>(initialState);
   const [fetchTeam, { data }] = useLazyQuery(FETCH_TEAM);
+  const [addMembersToTeam] = useMutation(ADD_MEMBERS_TO_TEAM);
+  const [deleteMembersFromTeam] = useMutation(DELETE_MEMBERS_FROM_TEAM);
+  const [deleteInviteesFromTeam] = useMutation(DELETE_INVITEES_FROM_TEAM);
   const { teamId } = useParams();
   const {
     profile: { id },
@@ -49,11 +52,14 @@ const TeamDetailsPage: VFC = () => {
     },
   ];
 
-  useEffect(() => {
+  const fetchAndSetTeam = async () => {
     const variables = { id: teamId };
-    fetchTeam({ variables }).then(({ data: { getTeamById: result } }) => {
-      setTeam({ ...team, ...result });
-    });
+    const { data: { getTeamById: result } } = await fetchTeam({ variables });
+    setTeam({ ...team, ...result });
+  };
+
+  useEffect(() => {
+    fetchAndSetTeam();
   }, [teamId]);
 
   const memberCards = team.members.map((user) => ({ user }));
@@ -64,6 +70,28 @@ const TeamDetailsPage: VFC = () => {
     return members.includes(id);
   };
 
+  const isYourInviter = () => {
+    const inviteeIds = team.invitees.map((invitee) => invitee.id);
+    return inviteeIds.includes(id);
+  };
+
+  const variablesForTeamEditing = { id: teamId, profileIds: [id] };
+
+  const leaveTeam = async () => {
+    await deleteMembersFromTeam({ variables: variablesForTeamEditing });
+    await fetchAndSetTeam();
+  };
+
+  const joinTeam = async () => {
+    await addMembersToTeam({ variables: variablesForTeamEditing });
+    await fetchAndSetTeam();
+  };
+
+  const rejectInvitation = async () => {
+    await deleteInviteesFromTeam({ variables: variablesForTeamEditing });
+    await fetchAndSetTeam();
+  };
+
   return (
     <Template>
       <StyledContainer>
@@ -72,10 +100,12 @@ const TeamDetailsPage: VFC = () => {
             <Padding bottom="25px" left="0px" right="0px">
               <Text size="1.5em" value={team.teamName} weight="bold" />
               {isYourTeam() && (
-                <Button
-                  handleClick={() => navigate(`/edit/team/${teamId}`)}
-                  title="チームを編集"
-                />
+                <Padding left="0px" right="0px">
+                  <Button
+                    handleClick={() => navigate(`/edit/team/${teamId}`)}
+                    title="チームを編集"
+                  />
+                </Padding>
               )}
             </Padding>
             <div>
@@ -85,6 +115,15 @@ const TeamDetailsPage: VFC = () => {
                   cards={memberCards}
                   noCardText="メンバーが存在しません"
                 />
+                {isYourTeam() && (
+                  <Padding left="0px" right="0px">
+                    <Button
+                      background="#DD0000"
+                      handleClick={() => leaveTeam()}
+                      title="チームを抜ける"
+                    />
+                  </Padding>
+                )}
               </Padding>
             </div>
             <div>
@@ -99,6 +138,22 @@ const TeamDetailsPage: VFC = () => {
                   noCardText="ユーザーが存在しません"
                 />
               </Padding>
+              {isYourInviter() && (
+                <StyledButtonWrapper>
+                  <Button
+                    background="#DD0000"
+                    handleClick={() => rejectInvitation()}
+                    title="招待を拒否"
+                    width="45%"
+                  />
+                  <Button
+                    background="#0099FF"
+                    handleClick={() => joinTeam()}
+                    title="チームに参加"
+                    width="45%"
+                  />
+                </StyledButtonWrapper>
+              )}
             </div>
             <CardList cardList={cardList} />
           </>
@@ -112,6 +167,12 @@ const StyledContainer = styled.div`
   margin: 0 auto;
   padding-top: 35px;
   width: 80%;
+`;
+
+const StyledButtonWrapper = styled.div`
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
 `;
 
 export default TeamDetailsPage;

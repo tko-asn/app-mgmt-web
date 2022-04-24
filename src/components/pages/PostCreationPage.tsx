@@ -2,7 +2,7 @@ import { useLazyQuery, useMutation } from '@apollo/client';
 import { useEffect, useState, VFC } from 'react';
 import { useProfile } from '../../contexts/ProfileContext';
 import { CREATE_SVC } from '../../queries/svc';
-import { FETCH_TEAMS } from '../../queries/team';
+import { FETCH_TEAMS_BY_TEAM_NAME_AND_MEMBER_ID } from '../../queries/team';
 import { AppInput, SimpleTeam } from '../../utils/types';
 import Input from '../atoms/Input';
 import Padding from '../atoms/Padding';
@@ -16,7 +16,7 @@ import MainContainer from '../atoms/MainContainer';
 import TeamLinkList from '../organisms/TeamLinkList';
 
 const PostCreationPage: VFC = () => {
-  const [fetchTeams] = useLazyQuery(FETCH_TEAMS);
+  const [fetchTeams] = useLazyQuery(FETCH_TEAMS_BY_TEAM_NAME_AND_MEMBER_ID);
   const [createSvc] = useMutation(CREATE_SVC);
   const { profile } = useProfile();
 
@@ -102,9 +102,12 @@ const PostCreationPage: VFC = () => {
 
   useEffect(() => {
     if (formOptions.checkedValue === 'team') {
-      const variables = { teamName: formOptions.teamName };
+      const variables = {
+        teamName: formOptions.teamName,
+        memberId: profile.id,
+      };
       fetchTeams({ variables }).then(
-        ({ data: { getTeamsByTeamName: result } }) => {
+        ({ data: { getTeamsByTeamNameAndMemberId: result } }) => {
           setTeamData({ ...teamData, candidateTeams: result });
         },
       );
@@ -112,7 +115,7 @@ const PostCreationPage: VFC = () => {
     } else if (formOptions.checkedValue === 'developer') {
       setTeamData(initialTeamData);
     }
-  }, [formOptions]);
+  }, [formOptions, profile.id]);
 
   return (
     <Template>
