@@ -33,6 +33,7 @@ const UserCardList: VFC<UserCardListProps> = ({
             hasIcon
             imageSize="30px"
             parentProps={cardParentProps}
+            sidePadding="0px"
             src={card.user.icon}
             textFontSize="0.9em"
             textValue={card.user.username}
@@ -50,6 +51,7 @@ const StyledUserCardList = styled.div`
   border-radius: 5px;
   max-height: 200px;
   overflow-y: scroll;
+  padding: 0 10px;
 `;
 
 const StyledUserCard = styled.div`
