@@ -47,9 +47,28 @@ const App: VFC = () => {
     };
   });
 
+  const cache = new InMemoryCache({
+    typePolicies: {
+      Comment: {
+        fields: {
+          likes: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+          },
+          dislikes: {
+            merge(existing, incoming) {
+              return incoming;
+            },
+          },
+        },
+      },
+    },
+  });
+
   const client = new ApolloClient({
     link: authLink.concat(httpLink),
-    cache: new InMemoryCache(),
+    cache,
   });
 
   return (
