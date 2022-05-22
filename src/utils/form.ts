@@ -12,3 +12,5 @@ export const imageHandler = (e: ChangeEvent<HTMLInputElement>) => {
   }
   return getCompressedFileData(files[0]);
 };
+
+export const whiteSpaceExists = (text: string) => /^[\s]+$/.test(text);
