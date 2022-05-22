@@ -8,7 +8,6 @@ export type IconProps = {
   className?: string;
   handleClick?: (event: MouseEvent<HTMLDivElement>) => void;
   imageSize?: string;
-  isPointer?: boolean;
   src?: string;
 };
 
@@ -31,7 +30,7 @@ const Icon: VFC<IconProps> = ({ className, handleClick, imageSize, src }) => {
   );
 };
 
-const StyledDiv = styled.div<Pick<IconProps, 'isPointer' | 'imageSize'>>`
+const StyledDiv = styled.div<Pick<IconProps, 'imageSize'> & { isPointer: boolean }>`
   background: silver;
   border-radius: 50%;
   cursor: ${(props) => (props.isPointer ? 'pointer' : 'default')};
