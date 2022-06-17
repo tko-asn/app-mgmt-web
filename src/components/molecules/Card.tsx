@@ -1,4 +1,4 @@
-import type { MouseEvent, VFC } from 'react';
+import { memo, MouseEvent, VFC } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import Icon, { IconProps } from '../atoms/Icon';
@@ -29,7 +29,7 @@ export type CardProps = {
   to?: string;
 };
 
-const Card: VFC<CardProps> = ({
+const Card: VFC<CardProps> = memo(({
   hasIcon,
   imageSize,
   linkValue,
@@ -72,7 +72,7 @@ const Card: VFC<CardProps> = ({
       </StyledWrapper>
     </StyledContainer>
   );
-};
+});
 
 const StyledContainer = styled(Padding)<ParentProps>`
   align-items: ${(props) => (props.alignItems ? props.alignItems : 'center')};

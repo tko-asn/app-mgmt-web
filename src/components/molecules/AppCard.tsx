@@ -1,4 +1,4 @@
-import type { MouseEvent, VFC } from 'react';
+import { memo, MouseEvent, VFC } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import AppIcon, { AppIconProps } from '../atoms/AppIcon';
@@ -15,37 +15,40 @@ export type AppCardProps = {
   externalLink?: boolean; // リンクが外部のURLかどうか
   handleClick?: (event: MouseEvent<HTMLDivElement>) => void;
   isButton?: boolean;
-  linkProps: LinkProps;
+  linkProps?: LinkProps;
   textProps: Pick<TextProps, 'className' | 'value'>;
 };
 
-const AppCard: VFC<AppCardProps> = ({
-  appIconProps,
-  externalLink,
-  handleClick,
-  isButton,
-  linkProps,
-  textProps,
-}) => {
-  return (
-    <StyledContainer
-      isButton={isButton}
-      onClick={
-        isButton && typeof handleClick === 'function' ? handleClick : () => {}
-      }
-    >
-      <AppIcon {...appIconProps} />
-      <Padding left="30px">
-        <Text size="1.4em" weight="bold" {...textProps} />
-        {externalLink ? (
-          <a href={linkProps.to}>{linkProps.value}</a>
-        ) : (
-          <Link to={linkProps.to}>{linkProps.value}</Link>
-        )}
-      </Padding>
-    </StyledContainer>
-  );
-};
+const AppCard: VFC<AppCardProps> = memo(
+  ({
+    appIconProps,
+    externalLink,
+    handleClick,
+    isButton,
+    linkProps,
+    textProps,
+  }) => {
+    return (
+      <StyledContainer
+        isButton={isButton}
+        onClick={
+          isButton && typeof handleClick === 'function' ? handleClick : () => {}
+        }
+      >
+        <AppIcon {...appIconProps} />
+        <Padding left="30px">
+          <Text size="1.4em" weight="bold" {...textProps} />
+          {linkProps &&
+            (externalLink ? (
+              <a href={linkProps.to}>{linkProps.value}</a>
+            ) : (
+              <Link to={linkProps.to}>{linkProps.value}</Link>
+            ))}
+        </Padding>
+      </StyledContainer>
+    );
+  },
+);
 
 type StyledContainerProps = {
   isButton?: boolean;

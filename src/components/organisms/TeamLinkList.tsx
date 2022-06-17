@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import styled from 'styled-components';
 import HyperLinkList, { MenuList } from '../molecules/HyperLinkList';
 
@@ -9,17 +9,18 @@ export type TeamLinkListProps = {
   width?: string;
 };
 
-const TeamLinkList: VFC<TeamLinkListProps> = ({ maxHeight, menuList, noTeamText, width }) => {
+const TeamLinkList: VFC<TeamLinkListProps> = memo(({ maxHeight, menuList, noTeamText, width }) => {
+  const menuListWithColor = menuList.map((menu) => ({ ...menu, color: '#666666' }));
   return (
     <StyledTeamsWrapper maxHeight={maxHeight} width={width}>
       {menuList.length ? (
-        <HyperLinkList menuList={menuList} />
+        <HyperLinkList menuList={menuListWithColor} />
       ) : (
         <StyledP>{noTeamText}</StyledP>
       )}
     </StyledTeamsWrapper>
   );
-};
+});
 
 const StyledTeamsWrapper = styled.div<Pick<TeamLinkListProps, 'maxHeight' | 'width'>>`
   background: #e0dfdf;

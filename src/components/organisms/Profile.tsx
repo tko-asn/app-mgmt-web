@@ -1,11 +1,11 @@
-import { useState, VFC } from 'react';
+import { memo, useLayoutEffect, useState, VFC } from 'react';
 import styled from 'styled-components';
 import { useMutation } from '@apollo/client';
 import Card, { CardProps } from '../molecules/Card';
 import IconForm, { IconFormProps } from '../molecules/IconForm';
 import ModalOverlay from '../atoms/ModalOverlay';
 import Padding from '../atoms/Padding';
-import { EDIT_ICON } from '../../queries/profile';
+import { UPDATE_ICON } from '../../queries/profile';
 import { useProfile } from '../../contexts/ProfileContext';
 
 export type ProfileProps = {
@@ -20,7 +20,7 @@ export type ProfileProps = {
   username: string;
 };
 
-const Profile: VFC<ProfileProps> = ({
+const Profile: VFC<ProfileProps> = memo(({
   card1Props,
   card2Props,
   icon,
@@ -28,9 +28,9 @@ const Profile: VFC<ProfileProps> = ({
   profileId,
   username,
 }) => {
-  const [isShowIconForm, setIsShowIconForm] = useState(false);
+  const [showsIconForm, setShowsIconForm] = useState(false);
 
-  const [editIcon] = useMutation(EDIT_ICON);
+  const [updateIcon, { data }] = useMutation(UPDATE_ICON);
 
   const { profile, setProfile } = useProfile();
 
@@ -39,16 +39,19 @@ const Profile: VFC<ProfileProps> = ({
     Profileが他のユーザーのものであればundefined（アイコンフォームが無効）
   */
   const showIconForm = (
-    profile.id === profileId ? () => setIsShowIconForm(true) : undefined);
+    profile.id === profileId ? () => setShowsIconForm(true) : undefined);
 
   const submitIconData = async (image: string) => {
     const variables = { id: profile.id, icon: image };
-    const {
-      data: { updateProfile: result },
-    } = await editIcon({ variables });
-    setProfile({ ...profile, ...result });
-    setIsShowIconForm(false);
+    await updateIcon({ variables });
+    setShowsIconForm(false);
   };
+
+  useLayoutEffect(() => {
+    if (data?.changeIcon?.icon) {
+      setProfile({ ...profile, icon: data.changeIcon.icon });
+    }
+  }, [data]);
 
   return (
     <StyledContainer>
@@ -56,19 +59,19 @@ const Profile: VFC<ProfileProps> = ({
         <StyledUserWrapper>
           <Card
             hasIcon
-            linkValue="プロフィール編集"
+            linkValue={profile.id === profileId ? 'プロフィール編集' : ''}
             showIconForm={showIconForm}
             src={icon}
             textValue={username}
             {...card1Props}
           />
-          {isShowIconForm && (
+          {showsIconForm && (
             <>
-              <ModalOverlay closeOverlay={() => setIsShowIconForm(false)} />
+              <ModalOverlay closeOverlay={() => setShowsIconForm(false)} />
               <StyledIconForm
                 defaultIcon={icon}
                 handleClick={submitIconData}
-                toggleIconForm={setIsShowIconForm}
+                toggleIconForm={setShowsIconForm}
                 {...iconFormProps}
               />
             </>
@@ -78,7 +81,7 @@ const Profile: VFC<ProfileProps> = ({
       </StyledWrapper>
     </StyledContainer>
   );
-};
+});
 
 const StyledContainer = styled(Padding)`
   background: #fff;

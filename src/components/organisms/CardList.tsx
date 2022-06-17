@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import Card, { CardProps } from '../molecules/Card';
 import Ul from '../atoms/Ul';
 
@@ -15,7 +15,7 @@ export type CardListProps = {
   >[];
 };
 
-const CardList: VFC<CardListProps> = ({ cardList }) => {
+const CardList: VFC<CardListProps> = memo(({ cardList }) => {
   const cards = cardList.map((card) => {
     const cardProps = {
       ...card,
@@ -32,7 +32,7 @@ const CardList: VFC<CardListProps> = ({ cardList }) => {
     );
   });
 
-  return <Ul list={cards} />;
-};
+  return <Ul>{cards}</Ul>;
+});
 
 export default CardList;

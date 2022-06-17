@@ -1,27 +1,32 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import styled from 'styled-components';
-import AppIcon, { AppIconProps } from '../atoms/AppIcon';
+import AppIcon, { AppIconProps, DEFAULT_SIZE } from '../atoms/AppIcon';
 import Padding from '../atoms/Padding';
 
-type AppIcons = {
+type App = {
   id: string;
+  appName?: string;
 } & AppIconProps;
 
 export type AppListProps = {
-  appList: AppIcons[];
+  appList: App[];
 };
 
-const AppList: VFC<AppListProps> = ({ appList }) => {
-  const apps = appList.map((app) => (
-    // keyを一意の値に変更する
-    <Padding bottom="30px" key={app.id} top="0">
-      <li>
-        <AppIcon {...app} />
-      </li>
-    </Padding>
-  ));
+const AppList: VFC<AppListProps> = memo(({ appList }) => {
+  const apps = appList.map((app) => {
+    const { id, appName, ...appIconProps } = app;
+    return (
+      // keyを一意の値に変更する
+      <Padding bottom="30px" key={id} top="0">
+        <StyledLi width={appIconProps.width}>
+          <AppIcon {...appIconProps} />
+          <StyledAppName>{appName}</StyledAppName>
+        </StyledLi>
+      </Padding>
+    );
+  });
   return <StyledUl>{apps}</StyledUl>;
-};
+});
 
 const StyledUl = styled.ul`
   display: flex;
@@ -29,6 +34,19 @@ const StyledUl = styled.ul`
   flex-wrap: wrap;
   list-style: none;
   padding: 0;
+`;
+
+const StyledLi = styled.li<Pick<App, 'width'>>`
+  width: ${(props) => (props.width ? props.width : DEFAULT_SIZE)};
+`;
+
+const StyledAppName = styled.p`
+  text-align: center;
+  color: #666666;
+  margin: 5px 0 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 `;
 
 export default AppList;
