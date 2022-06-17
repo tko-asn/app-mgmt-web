@@ -1,18 +1,23 @@
-type App = {
+export type App = {
   id: string;
   name: string;
   icon: string;
   url: string;
 };
 
-export type AppInput = {
+export type UpdateAppInput = {
   name: string;
   icon: string;
   url: string;
   description: string;
+};
+
+export type AppInput = {
   developerId: string;
   teamId: string;
-};
+} & UpdateAppInput;
+
+export type AppFormState = AppInput | UpdateAppInput;
 
 export type Apps = App[];
 
