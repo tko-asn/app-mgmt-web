@@ -39,20 +39,30 @@ export const FETCH_PROFILES_BY_USERNAME = gql`
   }
 `;
 
-export const FETCH_OR_CREATE_PROFILE = gql`
-  mutation FetchOrCreateProfile($userId: String!, $username: String!) {
-    getOrCreateProfile(input: { userId: $userId, username: $username }) {
+export const FETCH_PROFILE_BY_USER_ID = gql`
+  query FetchProfileByUserId($userId: String!) {
+    getProfileByUserId(userId: $userId) {
       id
-      userId
       username
-      icon
       selfIntro
+      userId
     }
   }
 `;
 
-export const EDIT_PROFILE = gql`
-  mutation EditProfile($id: ID!, $username: String!, $selfIntro: String!) {
+export const CREATE_PROFILE = gql`
+  mutation CreateProfile($username: String!, $selfIntro: String, $userId: String!) {
+    createProfile(input: { username: $username, selfIntro: $selfIntro, userId: $userId }) {
+      id
+      username
+      selfIntro
+      icon
+    }
+  }
+`;
+
+export const UPDATE_PROFILE = gql`
+  mutation UpdateProfile($id: ID!, $username: String!, $selfIntro: String!) {
     updateProfile(
       id: $id,
       input: { username: $username, selfIntro: $selfIntro },
@@ -63,9 +73,9 @@ export const EDIT_PROFILE = gql`
   }
 `;
 
-export const EDIT_ICON = gql`
-  mutation EditIcon($id: ID!, $icon: String!) {
-    updateProfile(id: $id, input: { icon: $icon }) {
+export const UPDATE_ICON = gql`
+  mutation UpdateIcon($id: ID!, $icon: String!) {
+    changeIcon(id: $id, icon: $icon) {
       icon
     }
   }
