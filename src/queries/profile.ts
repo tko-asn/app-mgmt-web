@@ -62,7 +62,7 @@ export const CREATE_PROFILE = gql`
 `;
 
 export const UPDATE_PROFILE = gql`
-  mutation UpdateProfile($id: ID!, $username: String!, $selfIntro: String!) {
+  mutation UpdateProfile($id: ID!, $username: String!, $selfIntro: String) {
     updateProfile(
       id: $id,
       input: { username: $username, selfIntro: $selfIntro },
