@@ -1,7 +1,7 @@
-import { ChangeEvent, MouseEvent, useState, VFC } from 'react';
+import { ChangeEvent, memo, MouseEvent, useState, VFC } from 'react';
 import styled from 'styled-components';
 
-const DEFAULT_SIZE = '100px';
+export const DEFAULT_SIZE = '100px';
 
 type HandleClickType = (event: MouseEvent<HTMLDivElement>) => void;
 
@@ -17,7 +17,7 @@ export type AppIconProps = {
   width?: string;
 };
 
-const AppIcon: VFC<AppIconProps> = ({
+const AppIcon: VFC<AppIconProps> = memo(({
   handleChange,
   handleClick,
   height,
@@ -29,7 +29,6 @@ const AppIcon: VFC<AppIconProps> = ({
   width,
 }) => {
   const [isAbleToShowOverlay, setIsAbleToShowOverlay] = useState(false);
-
   const appIcon = src ? (
     <StyledImage alt="" height={height} src={src} width={width} />
   ) : (
@@ -48,22 +47,21 @@ const AppIcon: VFC<AppIconProps> = ({
     >
       {appIcon}
       {isAllowedToEdit && isAbleToShowOverlay && (
-        <>
-          <StyledOverlay htmlFor="appIcon">編集</StyledOverlay>
-          <StyledInput id="appIcon" type="file" onChange={handleChange} />
-        </>
+        <StyledOverlay htmlFor="appIcon">編集</StyledOverlay>
       )}
+      <StyledInput id="appIcon" type="file" onChange={handleChange} />
     </StyledDiv>
   );
-};
+});
 
 const StyledDiv = styled.div<
   Pick<AppIconProps, 'height' | 'width'> & {
     isButton?: HandleClickType;
   }
 >`
-  background: gray;
+  background: #999999;
   border-radius: 5%;
+  box-shadow: 0px 3px 5px #aaaaaa;
   height: ${(props) => (props.height ? props.height : DEFAULT_SIZE)};
   overflow: hidden;
   position: relative;
