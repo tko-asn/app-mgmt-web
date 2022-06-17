@@ -10,6 +10,7 @@ export const createAppList = (
   navigateToAppPage: (appId: string) => void,
 ) => {
   return apps.map((app) => ({
+    appName: app.name,
     handleClick: () => navigateToAppPage(`/app/${app.id}`),
     id: app.id,
     initial: app.name[0],
