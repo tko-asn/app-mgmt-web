@@ -48,7 +48,7 @@ const HyperLinkList: VFC<HyperLinkListProps> = ({ activebg, menuList }) => {
       </StyledLi>
     );
   });
-  return <Ul list={menus} />;
+  return <Ul>{menus}</Ul>;
 };
 
 const StyledLi = styled.li`
