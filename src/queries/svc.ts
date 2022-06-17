@@ -93,10 +93,10 @@ export const CREATE_SVC = gql`
 export const UPDATE_SVC = gql`
   mutation UpdateSvc(
     $id: ID!
-    $name: String
+    $name: String!
     $description: String
     $icon: String
-    $url: String
+    $url: String!
   ) {
     updateSvc(
       id: $id
@@ -115,6 +115,14 @@ export const UPDATE_SVC = gql`
         id
         teamName
       }
+    }
+  }
+`;
+
+export const DELETE_SVC = gql`
+  mutation DeleteSvc($id: ID!) {
+    deleteSvc(id: $id) {
+      name
     }
   }
 `;
