@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import type { VFC } from 'react';
+import { memo, useState, VFC } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilePen, faSpinner, faThumbsDown, faThumbsUp, faTrashCan } from '@fortawesome/free-solid-svg-icons';
 import styled from 'styled-components';
@@ -27,7 +26,7 @@ export type CommentCardProps = {
   };
 };
 
-const CommentCard: VFC<CommentCardProps> = ({
+const CommentCard: VFC<CommentCardProps> = memo(({
   anchorText,
   content,
   datetime,
@@ -143,7 +142,7 @@ const CommentCard: VFC<CommentCardProps> = ({
       </StyledBottomWrapper>
     </StyledContainer>
   );
-};
+});
 
 const StyledContainer = styled.div`
   border-bottom: 1px solid gray;

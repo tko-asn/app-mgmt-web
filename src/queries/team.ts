@@ -77,7 +77,7 @@ export const CREATE_TEAM = gql`
 export const UPDATE_TEAM = gql`
   mutation UpdateTeam(
     $id: ID!
-    $teamName: String
+    $teamName: String!
     $description: String
     $inviteeIds: [ID]!
     $memberIds: [ID!]!

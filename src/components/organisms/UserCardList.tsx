@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import styled from 'styled-components';
 import { Profile } from '../../utils/types';
 import Button, { ButtonProps } from '../atoms/Button';
@@ -15,7 +15,7 @@ export type UserCardListProps = {
   noCardText?: string;
 };
 
-const UserCardList: VFC<UserCardListProps> = ({
+const UserCardList: VFC<UserCardListProps> = memo(({
   cardMinHeight,
   cards,
   noCardText,
@@ -43,7 +43,7 @@ const UserCardList: VFC<UserCardListProps> = ({
       ))}
     </StyledUserCardList>
   );
-};
+});
 
 const StyledUserCardList = styled.div`
   background: #f7f3f3;

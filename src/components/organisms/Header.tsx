@@ -10,7 +10,7 @@ export type HeaderProps = {
 };
 
 const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
-  const [isShow, setIsShow] = useState(false);
+  const [showsDropDownMenu, setShowsDropDownMenu] = useState(false);
 
   return (
     <StyledHeader>
@@ -20,11 +20,11 @@ const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
           name="logo"
           position="center"
           width="80px"
-          to="/"
+          to="/top"
         />
         <StyledMenuWrapper
-          onMouseEnter={() => setIsShow(true)}
-          onMouseLeave={() => setIsShow(false)}
+          onMouseEnter={() => setShowsDropDownMenu(true)}
+          onMouseLeave={() => setShowsDropDownMenu(false)}
         >
           <Anchor
             handleClick={() => {}}
@@ -33,7 +33,7 @@ const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
             position="center"
             width="100px"
           />
-          {isShow && <StyledDropDownMenu links={menus} />}
+          {showsDropDownMenu && <StyledDropDownMenu links={menus} />}
         </StyledMenuWrapper>
       </StyledContainer>
     </StyledHeader>
@@ -41,13 +41,13 @@ const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
 };
 
 const StyledHeader = styled.header`
-  background: #000;
+  background: #000080;
   display: flex;
   justify-content: center;
   position: fixed;
   width: 100%;
-  z-index: 30;
   top: 0;
+  z-index: 30;
 `;
 
 const StyledContainer = styled.div`

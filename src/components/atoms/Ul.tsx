@@ -2,11 +2,11 @@ import type { VFC } from 'react';
 import styled from 'styled-components';
 
 export type UlProps = {
-  list: JSX.Element[];
+  children: JSX.Element[];
 };
 
-const Ul: VFC<UlProps> = ({ list }) => {
-  return <StyledUl>{list}</StyledUl>;
+const Ul: VFC<UlProps> = ({ children }) => {
+  return <StyledUl>{children}</StyledUl>;
 };
 
 const StyledUl = styled.ul`

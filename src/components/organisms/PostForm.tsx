@@ -1,5 +1,4 @@
-import { ChangeEvent, useEffect, useState, VFC } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ChangeEvent, useCallback, useEffect, useMemo, useState, VFC } from 'react';
 import Button, { ButtonProps } from '../atoms/Button';
 import FormCard, { FormCardProps } from '../molecules/FormCard';
 import TextAreaForm, { TextAreaFormProps } from '../molecules/TextAreaForm';
@@ -8,7 +7,7 @@ import Padding from '../atoms/Padding';
 import { imageHandler, stateSetter } from '../../utils/form';
 import { useProfile } from '../../contexts/ProfileContext';
 import AppIcon from '../atoms/AppIcon';
-import { AppInput } from '../../utils/types';
+import { AppFormState, UpdateAppInput } from '../../utils/types';
 
 type InputFieldProps = Pick<InputFormProps, 'inputProps' | 'labelProps'>;
 
@@ -21,8 +20,8 @@ export type PostFormProps = {
   descriptionField: Pick<TextAreaFormProps, 'labelProps' | 'textAreaProps'>;
   formCardProps: Pick<FormCardProps, 'titleProps' | 'width'>;
   nameField: InputFieldProps;
-  postState?: AppInput;
-  submitPostData: (variables: AppInput) => Promise<void>;
+  postState?: UpdateAppInput;
+  submitPostData: (variables: AppFormState) => Promise<void>;
   teamId?: string;
   urlField: InputFieldProps;
 };
@@ -51,21 +50,14 @@ const PostForm: VFC<PostFormProps> = ({
     teamId: '',
   };
 
-  const [app, setApp] = useState<AppInput>(intialPostState);
+  const [app, setApp] = useState<AppFormState>(intialPostState);
 
-  const navigate = useNavigate();
+  const setState = stateSetter<AppFormState>(app, setApp);
 
-  const setState = stateSetter<AppInput>(app, setApp);
-
-  const submitData = async () => {
-    await submitPostData(app);
-    navigate('/top');
-  };
-
-  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const { src } = await imageHandler(e);
     setApp({ ...app, icon: src });
-  };
+  }, [app]);
 
   useEffect(() => {
     if (!postState) {
@@ -76,6 +68,10 @@ const PostForm: VFC<PostFormProps> = ({
     }
   }, [profileId, teamId]);
 
+  const appIconProps = useMemo(() => ({
+    initial: app.name[0],
+    src: app.icon,
+  }), [app.name, app.icon, handleChange]);
   const nameInputProps = {
     ...nameField.inputProps,
     value: app.name,
@@ -94,10 +90,9 @@ const PostForm: VFC<PostFormProps> = ({
       <>
         <Padding top="5px">
           <AppIcon
-            handleChange={handleChange}
-            initial={app.name[0]}
             isAllowedToEdit
-            src={app.icon}
+            handleChange={handleChange}
+            {...appIconProps}
           />
         </Padding>
         <Padding top="5px">
@@ -126,7 +121,7 @@ const PostForm: VFC<PostFormProps> = ({
         </Padding>
         {children}
         <Padding>
-          <Button handleClick={submitData} {...buttonProps} />
+          <Button handleClick={() => submitPostData(app)} {...buttonProps} />
         </Padding>
       </>
     </FormCard>

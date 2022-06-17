@@ -1,5 +1,6 @@
-import { useLayoutEffect, useState, VFC } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, VFC } from 'react';
 import styled from 'styled-components';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { useProfile } from '../../contexts/ProfileContext';
@@ -30,6 +31,8 @@ import CommentCard, { CommentCardProps } from '../molecules/CommentCard';
 import TextArea from '../atoms/TextArea';
 import ModalOverlay from '../atoms/ModalOverlay';
 import { whiteSpaceExists } from '../../utils/form';
+import { ACCEPT, CANCEL, DELETE } from '../../utils/colors';
+import { SVC_NOT_FOUND } from '../../utils/errors';
 
 const AppDetailsPage: VFC = () => {
   type Comment = {
@@ -78,21 +81,25 @@ const AppDetailsPage: VFC = () => {
     };
   };
 
-  const [fetchSvc, { data: svcData }] = useLazyQuery(FETCH_SVC);
+  const [fetchSvc, { data: svcData, error: fetchSvcError }] = useLazyQuery(FETCH_SVC);
   const [fetchCommentsBySvcId] = useLazyQuery(FETCH_COMMENTS_BY_SVC_ID);
   const [fetchCommentsByCommentId] = useLazyQuery(FETCH_COMMENTS_BY_COMMENT_ID);
   const [fetchCommentsByCommentIds] = useLazyQuery(
     FETCH_COMMENTS_BY_COMMENT_IDS,
   );
-  const [createComment, { loading: createCommentLoading }] = useMutation(CREATE_COMMENT);
-  const [updateComment, { loading: updateCommentLoading }] = useMutation(UPDATE_COMMENT);
-  const [deleteComment, { loading: deleteCommentLoading }] = useMutation(DELETE_COMMENT);
+  const [createComment, { loading: createCommentLoading }] =
+    useMutation(CREATE_COMMENT);
+  const [updateComment, { loading: updateCommentLoading }] =
+    useMutation(UPDATE_COMMENT);
+  const [deleteComment, { loading: deleteCommentLoading }] =
+    useMutation(DELETE_COMMENT);
   const [likeComment] = useMutation(LIKE_COMMENT);
   const [dislikeComment] = useMutation(DISLIKE_COMMENT);
   const [removeLike] = useMutation(REMOVE_LIKE);
   const [removeDislike] = useMutation(REMOVE_DISLIKE);
 
   const { profile } = useProfile();
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
   const { appId } = useParams();
   const navigate = useNavigate();
 
@@ -127,34 +134,58 @@ const AppDetailsPage: VFC = () => {
     CommentsOnCommentObj[]
   >([]);
   const [options, setOptions] = useState<Options>(initialOptionsState);
-  const initializeUpdateOptions = () => setOptions({
-    ...options,
-    updateOptions: initialOptionsState.updateOptions,
-  });
-  const initializeDeleteOptions = () => setOptions({
-    ...options,
-    deleteOptions: initialOptionsState.deleteOptions,
-  });
-  const openCommentUpdateForm = (comment: Comment) => setOptions({
-    ...options,
-    updateOptions: {
-      isAllowedToShowUpdateForm: true,
-      targetComment: {
-        id: comment.id,
-        content: comment.content,
+  const initializeUpdateOptions = () =>
+    setOptions({
+      ...options,
+      updateOptions: initialOptionsState.updateOptions,
+    });
+  const initializeDeleteOptions = () =>
+    setOptions({
+      ...options,
+      deleteOptions: initialOptionsState.deleteOptions,
+    });
+  const openCommentUpdateForm = (comment: Comment) =>
+    setOptions({
+      ...options,
+      updateOptions: {
+        isAllowedToShowUpdateForm: true,
+        targetComment: {
+          id: comment.id,
+          content: comment.content,
+        },
       },
-    },
-  });
-  const openCommentDeleteForm = (comment: Comment) => setOptions({
-    ...options,
-    deleteOptions: {
-      isAllowedToShowDeleteForm: true,
-      targetComment: {
-        id: comment.id,
-        content: comment.content,
+      /*
+      deleteOptionsのisAllowedToShowDeleteFormをfalseに設定する必要は
+      本来はないが、useMemoを使用しているcommentsOnSvcCards内でこの関数を
+      使用する際にoptionsの値が古いことがある
+      （例えばisAllowedToShowDeleteForm: true）
+      解決策は以下の二つ
+        1. useMemoの依存配列にこの関数を含める
+        2. この関数ないでisAllowedToShowDeleteFormをfalseにする
+      1の場合optionsが変更されるたびにuseMemoの処理が実行されてしまい、メモ化の意味があまりないので、2を採用
+
+      ちなみに以下のopenCommentDeleteFormも同様
+    */
+      deleteOptions: {
+        ...options.deleteOptions,
+        isAllowedToShowDeleteForm: false,
       },
-    },
-  });
+    });
+  const openCommentDeleteForm = (comment: Comment) =>
+    setOptions({
+      ...options,
+      updateOptions: {
+        ...options.updateOptions,
+        isAllowedToShowUpdateForm: false,
+      },
+      deleteOptions: {
+        isAllowedToShowDeleteForm: true,
+        targetComment: {
+          id: comment.id,
+          content: comment.content,
+        },
+      },
+    });
 
   const getTargetCommentObjAndOthers = (commentId: string) => {
     let target: CommentsOnCommentObj | undefined;
@@ -317,18 +348,21 @@ const AppDetailsPage: VFC = () => {
       team: undefined,
     };
 
-  const appCardProps = {
-    appIconProps: {
-      height: '200px',
-      initialSize: '15vw',
-      initial: app.name[0],
-      src: app.icon,
-      width: '200px',
-    },
-    externalLink: true,
-    linkProps: { to: app.url, value: 'アプリを見る' },
-    textProps: { value: app.name },
-  };
+  const appCardProps = useMemo(
+    () => ({
+      appIconProps: {
+        height: '200px',
+        initialSize: '15vw',
+        initial: app.name[0],
+        src: app.icon,
+        width: '200px',
+      },
+      externalLink: true,
+      linkProps: { to: app.url, value: 'アプリを見る' },
+      textProps: { value: app.name },
+    }),
+    [app.name, app.icon, app.url],
+  );
 
   const baseDeveloperCardObj = {
     imageSize: '70px',
@@ -339,28 +373,49 @@ const AppDetailsPage: VFC = () => {
     textFontSize: '1.5em',
   };
 
-  const cardList = [
-    {
-      ...baseCardObj,
-      subTextValue: app.description,
-      textValue: 'アプリの説明',
-    },
-    {
-      ...baseCardObj,
-      subTextValue: getDatetime(app.createdAt),
-      textValue: '作成日',
-    },
-    {
-      ...baseCardObj,
-      subTextValue: getDatetime(app.updatedAt),
-      textValue: '最終更新日',
-    },
-  ];
+  const developerCardProps = useMemo(
+    () => ({
+      ...baseDeveloperCardObj,
+      src: app.developer?.icon,
+      textValue: app.developer?.username,
+      to: `/user/${app.developer?.id}`,
+    }),
+    [app.developer],
+  );
+
+  const teamCardProps = useMemo(
+    () => ({
+      ...baseDeveloperCardObj,
+      textValue: app.team?.teamName,
+      to: `/team/${app.team?.id}`,
+    }),
+    [app.team],
+  );
+
+  const cardList = useMemo(
+    () => [
+      {
+        ...baseCardObj,
+        subTextValue: app.description,
+        textValue: 'アプリの説明',
+      },
+      {
+        ...baseCardObj,
+        subTextValue: getDatetime(app.createdAt),
+        textValue: '作成日',
+      },
+      {
+        ...baseCardObj,
+        subTextValue: getDatetime(app.updatedAt),
+        textValue: '最終更新日',
+      },
+    ],
+    [app.description, app.createdAt, app.updatedAt],
+  );
 
   const searchCommentsOnCommentObjFromSubCommentId = (commentId: string) => {
-    return commentsOnCommentObjs.find((commentsOnCommentObj) => (
-      commentsOnCommentObj.comments.some((comment) => comment.id === commentId)
-    ));
+    return commentsOnCommentObjs.find((commentsOnCommentObj) =>
+      commentsOnCommentObj.comments.some((comment) => comment.id === commentId));
   };
 
   const updateCommentOnSvc = async (commentId: string, content: string) => {
@@ -371,7 +426,8 @@ const AppDetailsPage: VFC = () => {
 
   const updateCommentOnComment = async (commentId: string, content: string) => {
     await updateComment({ variables: { id: commentId, content } });
-    const targetCommentsOnCommentObj = searchCommentsOnCommentObjFromSubCommentId(commentId);
+    const targetCommentsOnCommentObj =
+      searchCommentsOnCommentObjFromSubCommentId(commentId);
     if (targetCommentsOnCommentObj) {
       const { commentId: parentCommentId, page } = targetCommentsOnCommentObj;
       const variables = { commentId: parentCommentId, page, all: true };
@@ -380,10 +436,9 @@ const AppDetailsPage: VFC = () => {
           getCommentsByCommentId: { comments, count },
         },
       } = await fetchCommentsByCommentId({ variables });
-      const {
-        target,
-        others: newArray,
-      } = getTargetCommentObjAndOthers(targetCommentsOnCommentObj.commentId);
+      const { target, others: newArray } = getTargetCommentObjAndOthers(
+        targetCommentsOnCommentObj.commentId,
+      );
       if (target) {
         target.comments = comments;
         target.count = count;
@@ -419,7 +474,8 @@ const AppDetailsPage: VFC = () => {
 
   const deleteCommentOnComment = async (commentId: string) => {
     await deleteComment({ variables: { id: commentId } });
-    const targetCommentsOnCommentObj = searchCommentsOnCommentObjFromSubCommentId(commentId);
+    const targetCommentsOnCommentObj =
+      searchCommentsOnCommentObjFromSubCommentId(commentId);
     if (targetCommentsOnCommentObj) {
       const { commentId: parentCommentId, page } = targetCommentsOnCommentObj;
       const variables = { commentId: parentCommentId, page, all: true };
@@ -429,10 +485,9 @@ const AppDetailsPage: VFC = () => {
         },
       } = await fetchCommentsByCommentId({ variables });
       const newPage = checkAndGetPage(page, count);
-      const {
-        target,
-        others: newArray,
-      } = getTargetCommentObjAndOthers(targetCommentsOnCommentObj.commentId);
+      const { target, others: newArray } = getTargetCommentObjAndOthers(
+        targetCommentsOnCommentObj.commentId,
+      );
       if (target) {
         target.comments = comments;
         target.page = newPage;
@@ -463,6 +518,20 @@ const AppDetailsPage: VFC = () => {
       value: '',
     };
   };
+
+  /*
+    コンポーネントの描画中にnavigateすると警告が出るため、エラーハンドリングに
+    useEffectを使用して描画が終わってからnavigateするようにする
+  */
+  useEffect(() => {
+    if (fetchSvcError) {
+      if (fetchSvcError.message === SVC_NOT_FOUND) {
+        navigate('/error/notFound');
+      } else {
+        navigate('/error');
+      }
+    }
+  }, [fetchSvcError]);
 
   useLayoutEffect(() => {
     const svcVariables = { id: appId };
@@ -521,9 +590,13 @@ const AppDetailsPage: VFC = () => {
       datetime: getDatetime(createdAt),
       handleUserBlockClick: () => navigate(`/user/${author.id}`),
       countOfLikes,
-      handleThumbsUpClick,
+      handleThumbsUpClick: isAuthenticated
+        ? handleThumbsUpClick
+        : loginWithRedirect,
       countOfDislikes,
-      handleThumbsDownClick,
+      handleThumbsDownClick: isAuthenticated
+        ? handleThumbsDownClick
+        : loginWithRedirect,
       id,
       userData: {
         icon: author.icon,
@@ -546,7 +619,9 @@ const AppDetailsPage: VFC = () => {
     checksPage?: boolean,
   ) => {
     const {
-      data: { getCommentsBySvcId: { comments, count } },
+      data: {
+        getCommentsBySvcId: { comments, count },
+      },
     } = await fetchCommentsBySvcId({ variables: { svcId: app.id, page, all } });
     if (checksPage) {
       const newPage = checkAndGetPage(commentsOnSvc.page, count);
@@ -561,9 +636,7 @@ const AppDetailsPage: VFC = () => {
     hasLiked: boolean,
     hasDisliked: boolean,
   ) => {
-    const likeFunc: any = hasLiked
-      ? removeLike
-      : likeComment;
+    const likeFunc: any = hasLiked ? removeLike : likeComment;
     if (hasDisliked) {
       return async () => {
         await removeDislike({ variables });
@@ -580,9 +653,7 @@ const AppDetailsPage: VFC = () => {
     hasLiked: boolean,
     hasDisliked: boolean,
   ) => {
-    const dislikeFunc: any = hasDisliked
-      ? removeDislike
-      : dislikeComment;
+    const dislikeFunc: any = hasDisliked ? removeDislike : dislikeComment;
     if (hasLiked) {
       return async () => {
         await removeLike({ variables });
@@ -594,59 +665,87 @@ const AppDetailsPage: VFC = () => {
     };
   };
 
-  const commentsOnSvcCards = commentsOnSvc.comments.map((comment: Comment) => {
-    const subComments = commentsOnCommentObjs.find(
-      (commentsOnCommentObj) => commentsOnCommentObj.commentId === comment.id,
-    );
-    const count = subComments?.count;
-    const isAllowedToShowComments = subComments?.isAllowedToShowComments;
+  const commentsOnSvcCards = useMemo(
+    () =>
+      commentsOnSvc.comments.map((comment: Comment) => {
+        const subComments = commentsOnCommentObjs.find(
+          (commentsOnCommentObj) =>
+            commentsOnCommentObj.commentId === comment.id,
+        );
+        const count = subComments?.count;
+        const isAllowedToShowComments = subComments?.isAllowedToShowComments;
 
-    const kwargs: createCommentCardPropsKwargs = {};
-    if (count) {
-      kwargs.anchorText = isAllowedToShowComments ? '閉じる' : `返信をみる(${count})`;
-      kwargs.handleAnchorClick = isAllowedToShowComments
-        ? () => hideCommentsOnComment(comment.id)
-        : () => showCommentsOnComment(comment.id);
-    }
+        const kwargs: createCommentCardPropsKwargs = {};
+        if (count) {
+          kwargs.anchorText = isAllowedToShowComments
+            ? '閉じる'
+            : `返信をみる(${count})`;
+          kwargs.handleAnchorClick = isAllowedToShowComments
+            ? () => hideCommentsOnComment(comment.id)
+            : () => showCommentsOnComment(comment.id);
+        }
 
-    if (profile.id === comment.author.id) {
-      kwargs.handleFilePenClick = () => openCommentUpdateForm(comment);
-      kwargs.handleTrashCanClick = () => openCommentDeleteForm(comment);
-    }
+        if (profile.id === comment.author.id) {
+          kwargs.handleFilePenClick = () => openCommentUpdateForm(comment);
+          kwargs.handleTrashCanClick = () => openCommentDeleteForm(comment);
+        }
 
-    const countOfLikes = comment.likes.length;
-    const countOfDislikes = comment.dislikes.length;
-    const hasLiked = comment.likes.some(({ id }) => id === profile.id);
-    const hasDisliked = comment.dislikes.some(({ id }) => id === profile.id);
-    if (hasLiked) {
-      kwargs.thumbsUpColor = 'black';
-    }
-    if (hasDisliked) {
-      kwargs.thumbsDownColor = 'black';
-    }
-    const variables = {
-      id: comment.id,
-      profileId: profile.id,
-    };
-    const handleThumbsUpClick = async () => {
-      const addOrRemoveLike = getAddOrRemoveLikeFunction(variables, hasLiked, hasDisliked);
-      await addOrRemoveLike();
-      await fetchAndSetCommentsOnSvc(commentsOnSvc.page, true);
-    };
-    const handleThumbsDownClick = async () => {
-      const addOrRemoveDislike = getAddOrRemoveDislikeFunction(variables, hasLiked, hasDisliked);
-      await addOrRemoveDislike();
-      await fetchAndSetCommentsOnSvc(commentsOnSvc.page, true);
-    };
-    return createCommentCardProps(
-      comment,
-      countOfLikes,
-      handleThumbsUpClick,
-      countOfDislikes,
-      handleThumbsDownClick,
-      kwargs,
-    );
-  });
+        const countOfLikes = comment.likes.length;
+        const countOfDislikes = comment.dislikes.length;
+        const hasLiked = comment.likes.some(({ id }) => id === profile.id);
+        const hasDisliked = comment.dislikes.some(
+          ({ id }) => id === profile.id,
+        );
+        if (hasLiked) {
+          kwargs.thumbsUpColor = 'black';
+        }
+        if (hasDisliked) {
+          kwargs.thumbsDownColor = 'black';
+        }
+        const variables = {
+          id: comment.id,
+          profileId: profile.id,
+        };
+        const handleThumbsUpClick = async () => {
+          const addOrRemoveLike = getAddOrRemoveLikeFunction(
+            variables,
+            hasLiked,
+            hasDisliked,
+          );
+          await addOrRemoveLike();
+          await fetchAndSetCommentsOnSvc(commentsOnSvc.page, true);
+        };
+        const handleThumbsDownClick = async () => {
+          const addOrRemoveDislike = getAddOrRemoveDislikeFunction(
+            variables,
+            hasLiked,
+            hasDisliked,
+          );
+          await addOrRemoveDislike();
+          await fetchAndSetCommentsOnSvc(commentsOnSvc.page, true);
+        };
+        return createCommentCardProps(
+          comment,
+          countOfLikes,
+          handleThumbsUpClick,
+          countOfDislikes,
+          handleThumbsDownClick,
+          kwargs,
+        );
+        /*
+      app.idを依存配列に入れないとコメントにグッド・バッドした時に
+      メモリリークのエラーが発生する
+      原因はapp.idの初期値が空文字列であり、app.idを依存配列に含めないと
+      このスコープ内ではapp.idを空文字列として（fetchAndSetCommentsOnSvc内で）参照してしまうため
+      解決策は以下の二つ
+        1. このuseMemoの依存配列にapp.idを含める
+        2. app.idの初期値にURLから取得したappIdを設定する
+        3. app.idを使用しているfetchAndSetCommentsOnSvcをメモ化して依存配列に含める
+      今回はコードの読みやすさを重視して1を採用
+    */
+      }),
+    [commentsOnSvc, commentsOnCommentObjs, profile, app.id],
+  );
 
   const getCommentsOnCommentCards = (commentId: string) => {
     const commentsOnComment = commentsOnCommentObjs.find(
@@ -658,7 +757,9 @@ const AppDetailsPage: VFC = () => {
         const countOfLikes = comment.likes.length;
         const countOfDislikes = comment.dislikes.length;
         const hasLiked = comment.likes.some(({ id }) => id === profile.id);
-        const hasDisliked = comment.dislikes.some(({ id }) => id === profile.id);
+        const hasDisliked = comment.dislikes.some(
+          ({ id }) => id === profile.id,
+        );
         const variables = {
           id: comment.id,
           profileId: profile.id,
@@ -671,17 +772,21 @@ const AppDetailsPage: VFC = () => {
         };
 
         const handleThumbsUpClick = async () => {
-          const addOrRemoveLike = getAddOrRemoveLikeFunction(variables, hasLiked, hasDisliked);
+          const addOrRemoveLike = getAddOrRemoveLikeFunction(
+            variables,
+            hasLiked,
+            hasDisliked,
+          );
           await addOrRemoveLike();
           const {
             data: {
               getCommentsByCommentId: { comments, count },
             },
-          } = await fetchCommentsByCommentId({ variables: fetchCommentsByCommentIdVariables });
-          const {
-            target,
-            others: newArray,
-          } = getTargetCommentObjAndOthers(commentId);
+          } = await fetchCommentsByCommentId({
+            variables: fetchCommentsByCommentIdVariables,
+          });
+          const { target, others: newArray } =
+            getTargetCommentObjAndOthers(commentId);
           if (target) {
             target.comments = comments;
             target.count = count;
@@ -703,11 +808,11 @@ const AppDetailsPage: VFC = () => {
             data: {
               getCommentsByCommentId: { comments, count },
             },
-          } = await fetchCommentsByCommentId({ variables: fetchCommentsByCommentIdVariables });
-          const {
-            target,
-            others: newArray,
-          } = getTargetCommentObjAndOthers(commentId);
+          } = await fetchCommentsByCommentId({
+            variables: fetchCommentsByCommentIdVariables,
+          });
+          const { target, others: newArray } =
+            getTargetCommentObjAndOthers(commentId);
           if (target) {
             target.comments = comments;
             target.count = count;
@@ -721,6 +826,12 @@ const AppDetailsPage: VFC = () => {
         if (profile.id === comment.author.id) {
           kwargs.handleFilePenClick = () => openCommentUpdateForm(comment);
           kwargs.handleTrashCanClick = () => openCommentDeleteForm(comment);
+        }
+        if (hasLiked) {
+          kwargs.thumbsUpColor = 'black';
+        }
+        if (hasDisliked) {
+          kwargs.thumbsDownColor = 'black';
         }
         return createCommentCardProps(
           comment,
@@ -745,9 +856,8 @@ const AppDetailsPage: VFC = () => {
     );
   };
 
-  const isCommentOnSvc = (commentId: string) => commentsOnSvc.comments.some(
-    (comment) => comment.id === commentId,
-  );
+  const isCommentOnSvc = (commentId: string) =>
+    commentsOnSvc.comments.some((comment) => comment.id === commentId);
 
   const canCommentOnComment = (commentId: string) =>
     commentsOnCommentObjs.some(
@@ -791,10 +901,9 @@ const AppDetailsPage: VFC = () => {
     return false;
   };
 
-  const canShowModalWindow = (
-    options.updateOptions.isAllowedToShowUpdateForm
-    || options.deleteOptions.isAllowedToShowDeleteForm
-  );
+  const canShowModalWindow =
+    options.updateOptions.isAllowedToShowUpdateForm ||
+    options.deleteOptions.isAllowedToShowDeleteForm;
 
   return (
     <Template>
@@ -802,57 +911,62 @@ const AppDetailsPage: VFC = () => {
         <StyledContainer>
           <AppCard {...appCardProps} />
           {isYourApp() && (
-            <Padding left="0px" right="0px">
+            <Padding bottom="20px">
               <Button
+                fontSize="0.9em"
                 handleClick={() => navigate(`/edit/app/${appId}`)}
+                height="30px"
                 title="アプリを編集"
+                width="200px"
               />
             </Padding>
           )}
-          <div>
+          <Padding left="0px" right="0px" bottom="0px">
             <Text size={DEFAULT_SIZE} value="作成者" weight="bold" />
             <Padding bottom="50px" top="0px">
               {app.developer && (
                 <Card
                   hasIcon
                   linkValue="ユーザーを見る"
-                  src={app.developer.icon}
-                  textValue={app.developer.username}
-                  to={`/user/${app.developer.id}`}
-                  {...baseDeveloperCardObj}
+                  {...developerCardProps}
                 />
               )}
-              {app.team && (
-                <Card
-                  linkValue="チームを見る"
-                  textValue={app.team.teamName}
-                  to={`/team/${app.team.id}`}
-                  {...baseDeveloperCardObj}
-                />
-              )}
+              {app.team && <Card linkValue="チームを見る" {...teamCardProps} />}
             </Padding>
-          </div>
+          </Padding>
           <CardList cardList={cardList} />
           <Text
             size={DEFAULT_SIZE}
             value={`コメント(${commentsOnSvc.count})`}
             weight="bold"
           />
-          <Padding>
-            <Padding left="0px" right="0px">
-              <TextArea
-                handleChange={(value) => setOptions({ ...options, newCommentOnSvc: value })}
-                placeholder="アプリへのコメントを入力"
-                id="commentOnSvc"
-                value={options.newCommentOnSvc}
+          {isAuthenticated ? (
+            <Padding>
+              <Padding left="0px" right="0px">
+                <TextArea
+                  handleChange={(value) =>
+                    setOptions({ ...options, newCommentOnSvc: value })
+                  }
+                  placeholder="アプリへのコメントを入力"
+                  id="commentOnSvc"
+                  value={options.newCommentOnSvc}
+                />
+              </Padding>
+              <Button
+                disabled={disablesCommentOnSvcCreation()}
+                handleClick={() => addNewCommentOnSvc()}
+                title="コメントする"
               />
             </Padding>
-            <Button
-              disabled={disablesCommentOnSvcCreation()}
-              handleClick={() => addNewCommentOnSvc()}
-              title="コメントする"
-            />
-          </Padding>
+          ) : (
+            <Padding left="0px" right="0px">
+              <Button
+                background="navy"
+                handleClick={loginWithRedirect}
+                title="ログインしてコメントする"
+              />
+            </Padding>
+          )}
           <StyledCommentBlock>
             {commentsOnSvc.count > 0 && (
               <div>
@@ -876,10 +990,13 @@ const AppDetailsPage: VFC = () => {
                                 </Padding>
                                 <StyledTwoButtonContainer>
                                   <Button
-                                    background="#C0C0C0"
+                                    background={CANCEL}
                                     fontSize="0.9em"
                                     handleClick={() =>
-                                      showOrHideCommentCreationFormForComment(id, false)
+                                      showOrHideCommentCreationFormForComment(
+                                        id,
+                                        false,
+                                      )
                                     }
                                     height="30px"
                                     title="キャンセル"
@@ -887,10 +1004,14 @@ const AppDetailsPage: VFC = () => {
                                   />
                                   <Padding top="0px" right="0px" bottom="0px">
                                     <Button
-                                      background="#3399FF"
-                                      disabled={disablesCommentOnCommentCreation(id)}
+                                      background={ACCEPT}
+                                      disabled={disablesCommentOnCommentCreation(
+                                        id,
+                                      )}
                                       fontSize="0.9em"
-                                      handleClick={() => addNewCommentOnComment(id)}
+                                      handleClick={() =>
+                                        addNewCommentOnComment(id)
+                                      }
                                       height="30px"
                                       title="コメント"
                                       width="100px"
@@ -900,16 +1021,30 @@ const AppDetailsPage: VFC = () => {
                               </div>
                             ) : (
                               <Padding left="0px" right="0px">
-                                <Button
-                                  background="green"
-                                  fontSize="0.9em"
-                                  handleClick={() =>
-                                    showOrHideCommentCreationFormForComment(id, true)
-                                  }
-                                  height="25px"
-                                  title="コメントする"
-                                  width="100px"
-                                />
+                                {isAuthenticated ? (
+                                  <Button
+                                    background="green"
+                                    fontSize="0.9em"
+                                    handleClick={() =>
+                                      showOrHideCommentCreationFormForComment(
+                                        id,
+                                        true,
+                                      )
+                                    }
+                                    height="25px"
+                                    title="コメントする"
+                                    width="100px"
+                                  />
+                                ) : (
+                                  <Button
+                                    background="navy"
+                                    fontSize="0.8em"
+                                    handleClick={loginWithRedirect}
+                                    height="25px"
+                                    title="ログインしてコメントする"
+                                    width="180px"
+                                  />
+                                )}
                               </Padding>
                             )}
                             <StyledSubCommentUl>
@@ -962,8 +1097,8 @@ const AppDetailsPage: VFC = () => {
         {canShowModalWindow && (
           <>
             <ModalOverlay
-              closeOverlay={
-                () => setOptions({
+              closeOverlay={() =>
+                setOptions({
                   ...options,
                   updateOptions: initialOptionsState.updateOptions,
                   deleteOptions: initialOptionsState.deleteOptions,
@@ -975,16 +1110,18 @@ const AppDetailsPage: VFC = () => {
                 <Text size="1.7em" value="投稿を編集する" weight="bold" />
                 <StyledCommentUpdateFormContainer>
                   <TextArea
-                    handleChange={(value) => setOptions({
-                      ...options,
-                      updateOptions: {
-                        ...options.updateOptions,
-                        targetComment: {
-                          ...options.updateOptions.targetComment,
-                          content: value,
+                    handleChange={(value) =>
+                      setOptions({
+                        ...options,
+                        updateOptions: {
+                          ...options.updateOptions,
+                          targetComment: {
+                            ...options.updateOptions.targetComment,
+                            content: value,
+                          },
                         },
-                      },
-                    })}
+                      })
+                    }
                     id="updatedComment"
                     placeholder="コメントを入力"
                     value={options.updateOptions.targetComment.content}
@@ -993,7 +1130,7 @@ const AppDetailsPage: VFC = () => {
                 <Padding>
                   <StyledTwoButtonContainer>
                     <Button
-                      background="#C0C0C0"
+                      background={CANCEL}
                       fontSize="0.9em"
                       handleClick={() => initializeUpdateOptions()}
                       height="30px"
@@ -1005,16 +1142,21 @@ const AppDetailsPage: VFC = () => {
                         background="green"
                         disabled={disablesCommentEditing()}
                         fontSize="0.9em"
-                        handleClick={
-                          () => {
-                            const targetCommentId = options.updateOptions.targetComment.id;
-                            const targetCommentContent =
-                              options.updateOptions.targetComment.content;
-                            return isCommentOnSvc(targetCommentId)
-                              ? updateCommentOnSvc(targetCommentId, targetCommentContent)
-                              : updateCommentOnComment(targetCommentId, targetCommentContent);
-                          }
-                        }
+                        handleClick={() => {
+                          const targetCommentId =
+                            options.updateOptions.targetComment.id;
+                          const targetCommentContent =
+                            options.updateOptions.targetComment.content;
+                          return isCommentOnSvc(targetCommentId)
+                            ? updateCommentOnSvc(
+                              targetCommentId,
+                              targetCommentContent,
+                            )
+                            : updateCommentOnComment(
+                              targetCommentId,
+                              targetCommentContent,
+                            );
+                        }}
                         height="30px"
                         title="保存"
                         width="70px"
@@ -1029,10 +1171,12 @@ const AppDetailsPage: VFC = () => {
                 <Text size="1.7em" value="投稿を削除する" weight="bold" />
                 <Padding>
                   <p>この投稿を削除しますか?</p>
-                  <StyledP>{options.deleteOptions.targetComment.content}</StyledP>
+                  <StyledP>
+                    {options.deleteOptions.targetComment.content}
+                  </StyledP>
                   <StyledTwoButtonContainer>
                     <Button
-                      background="#C0C0C0"
+                      background={CANCEL}
                       fontSize="0.9em"
                       handleClick={() => initializeDeleteOptions()}
                       height="30px"
@@ -1041,17 +1185,16 @@ const AppDetailsPage: VFC = () => {
                     />
                     <Padding top="0px" right="0px" bottom="0px">
                       <Button
-                        background="red"
+                        background={DELETE}
                         disabled={deleteCommentLoading}
                         fontSize="0.9em"
-                        handleClick={
-                          () => {
-                            const targetCommentId = options.deleteOptions.targetComment.id;
-                            return isCommentOnSvc(targetCommentId)
-                              ? deleteCommentOnSvc(targetCommentId)
-                              : deleteCommentOnComment(targetCommentId);
-                          }
-                        }
+                        handleClick={() => {
+                          const targetCommentId =
+                            options.deleteOptions.targetComment.id;
+                          return isCommentOnSvc(targetCommentId)
+                            ? deleteCommentOnSvc(targetCommentId)
+                            : deleteCommentOnComment(targetCommentId);
+                        }}
                         height="30px"
                         title="削除"
                         width="70px"

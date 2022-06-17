@@ -1,4 +1,4 @@
-import { useEffect, useState, VFC } from 'react';
+import { useEffect, useLayoutEffect, useMemo, VFC } from 'react';
 import styled from 'styled-components';
 import {
   Route,
@@ -8,126 +8,160 @@ import {
   Navigate,
 } from 'react-router-dom';
 import { useLazyQuery } from '@apollo/client';
-import AppCardList from '../organisms/AppCardList';
 import CardList from '../organisms/CardList';
 import Profile from '../organisms/Profile';
 import SideMenu from '../organisms/SideMenu';
 import Template from '../templates/Template';
-import { profileProps } from './props/UserPage';
 import { FETCH_PROFILE } from '../../queries/profile';
 import { useProfile } from '../../contexts/ProfileContext';
 import { FETCH_SVCS_BY_PROFILE_ID } from '../../queries/svc';
 import Padding from '../atoms/Padding';
-import { Apps } from '../../utils/types';
+import { App, SimpleTeam } from '../../utils/types';
 import TeamLinkList from '../organisms/TeamLinkList';
+import { SIDE_MENU_ACTIVEBG, SIDE_MENU_LINK } from '../../utils/colors';
+import Ul from '../atoms/Ul';
+import AppCard, { AppCardProps } from '../molecules/AppCard';
+import { getDatetime } from '../../utils/app';
+import { PROFILE_NOT_FOUND } from '../../utils/errors';
 
 const UserTemplate: VFC = () => {
-  type Team = {
+  type AppLi = {
     id: string;
-    teamName: string;
-  };
-  type User = {
-    id: string;
-    username: string;
-    icon: string;
-    selfIntro: string;
-    inviters: Team[];
-    teams: Team[];
+    appCardProps: AppCardProps;
   };
 
-  const initialState = {
-    id: '',
-    username: '',
-    icon: '',
-    selfIntro: '',
-    inviters: [],
-    teams: [],
-  };
   const {
-    profile: { icon, selfIntro },
+    profile: { icon },
   } = useProfile();
-
-  // 表示するユーザーのデータ
-  const [user, setUser] = useState<User>(initialState);
-  const [apps, setApps] = useState<Apps>([]);
-  const [fetchProfile] = useLazyQuery(FETCH_PROFILE);
-  const [fetchSvcs] = useLazyQuery(FETCH_SVCS_BY_PROFILE_ID);
+  const [
+    fetchProfile,
+    { data: profileData, error: fetchProfileError },
+  ] = useLazyQuery(FETCH_PROFILE);
+  const [fetchSvcs, { data: appsData }] = useLazyQuery(
+    FETCH_SVCS_BY_PROFILE_ID,
+  );
   const { profileId } = useParams();
   const navigate = useNavigate();
 
-  const hyperLinkListProps = {
-    activebg: '#3366CC',
-    menuList: [
-      { name: 'プロフィール', to: `/user/${profileId}` },
-      { name: 'アプリ一覧', to: `/user/${profileId}/apps` },
-      { name: '所属チーム', to: `/user/${profileId}/teams` },
-      { name: '招待されているチーム', to: `/user/${profileId}/inviters` },
-    ],
-  };
+  const profileProps = useMemo(() => ({
+    icon: profileData?.getProfileById.icon,
+    profileId,
+    username: profileData?.getProfileById.username,
+    card1Props: {
+      to: '/edit/profile',
+    },
+    card2Props: {
+      subTextValue: '0',
+      textValue: 'アプリ',
+      to: '/apps',
+    },
+    iconFormProps: {
+      className: '',
+      iconProps: {
+        imageSize: '150px',
+      },
+    },
+  }), [profileData, profileId]);
+
+  const hyperLinkListProps = useMemo(
+    () => ({
+      activebg: SIDE_MENU_ACTIVEBG,
+      menuList: [
+        { name: 'プロフィール', to: `/user/${profileId}`, color: SIDE_MENU_LINK },
+        { name: 'アプリ一覧', to: `/user/${profileId}/apps`, color: SIDE_MENU_LINK },
+        { name: '所属チーム', to: `/user/${profileId}/teams`, color: SIDE_MENU_LINK },
+        { name: '招待されているチーム', to: `/user/${profileId}/inviters`, color: SIDE_MENU_LINK },
+      ],
+    }),
+    [profileId],
+  );
 
   const newProfileProps = { ...profileProps };
   newProfileProps.card2Props.to = `/apps/${profileId}`;
 
-  const profileMenuProps = [
-    {
-      subTextValue: selfIntro,
-      textValue: 'プロフィール',
-    },
-  ];
+  const profileMenuProps = useMemo(() => {
+    if (profileData) {
+      const { selfIntro, createdAt } = profileData.getProfileById;
+      return [
+        {
+          subTextValue: selfIntro || '自己紹介は未記入です。',
+          textValue: 'プロフィール',
+        },
+        {
+          subTextValue: getDatetime(createdAt),
+          textValue: 'アカウント開設日',
+        },
+      ];
+    }
+    return [];
+  }, [profileData]);
 
-  const teamsMenuProps = user.teams.map((team) => ({
-    color: '#000',
-    name: team.teamName,
-    to: `/team/${team.id}`,
-  }));
+  const teamsMenuProps = useMemo(
+    () => (
+      profileData?.getProfileById.teams
+        ? profileData?.getProfileById.teams.map((team: SimpleTeam) => ({
+          color: '#000',
+          name: team.teamName,
+          to: `/team/${team.id}`,
+        }))
+        : []),
+    [profileData?.getProfileById.teams],
+  );
 
-  const invitersMenuProps = user.inviters.map((inviter) => ({
-    color: '#000',
-    name: inviter.teamName,
-    to: `/team/${inviter.id}`,
-  }));
+  const invitersMenuProps = useMemo(
+    () => (
+      profileData?.getProfileById.inviters
+        ? profileData?.getProfileById.inviters.map((inviter: SimpleTeam) => ({
+          color: '#000',
+          name: inviter.teamName,
+          to: `/team/${inviter.id}`,
+        }))
+        : []),
+    [profileData?.getProfileById.inviters],
+  );
 
-  const appsMenuProps = apps.map((app) => {
-    return {
-      appIconProps: {
-        initial: app.name[0],
-        src: app.icon,
-      },
-      externalLink: true,
-      handleClick: () => navigate(`/app/${app.id}`),
-      isButton: true,
-      linkProps: {
-        to: app.url,
-        value: 'アプリを見る',
-      },
-      textProps: {
-        value: app.name,
-      },
-    };
-  });
+  const appCards = appsData?.getSvcsByProfileId.svcs
+    ? appsData?.getSvcsByProfileId.svcs.map((app: App) => {
+      return {
+        id: app.id,
+        appCardProps: {
+          appIconProps: {
+            initial: app.name[0],
+            src: app.icon,
+          },
+          externalLink: true,
+          handleClick: () => navigate(`/app/${app.id}`),
+          isButton: true,
+          textProps: {
+            value: app.name,
+          },
+        },
+      };
+    })
+    : [];
 
   useEffect(() => {
+    if (fetchProfileError) {
+      if (fetchProfileError.message === PROFILE_NOT_FOUND) {
+        navigate('/error/notFound');
+      } else {
+        navigate('/error');
+      }
+    }
+  }, [fetchProfileError]);
+
+  useLayoutEffect(() => {
     Promise.all([
       fetchProfile({ variables: { id: profileId } }),
       fetchSvcs({ variables: { page: 1, profileId } }),
-    ]).then((values) => {
-      const profileResult = values[0].data.getProfileById;
-      const svcResult = values[1].data.getSvcsByProfileId.svcs;
-      setUser({ ...user, ...profileResult });
-      setApps(svcResult);
-    });
+    ]);
   }, [profileId, icon]); // icon編集時にも自分のプロフィールを再度取得
 
   return (
     <Template>
       <StyledContainer>
         <Padding top="35px" left="0px" right="0px" bottom="0px">
-          <Profile
-            icon={user.icon}
-            profileId={profileId}
-            username={user.username}
-            {...profileProps}
-          />
+          <Profile {...profileProps} />
         </Padding>
         <StyledWrapper>
           <StyledContentWrapper>
@@ -139,7 +173,15 @@ const UserTemplate: VFC = () => {
               />
               <Route
                 path="/apps"
-                element={<AppCardList apps={appsMenuProps} />}
+                element={(
+                  <Ul>
+                    {appCards.map((appCard: AppLi) => (
+                      <li key={appCard.id}>
+                        <AppCard {...appCard.appCardProps} />
+                      </li>
+                    ))}
+                  </Ul>
+                )}
               />
               <Route
                 path="/teams"
@@ -168,7 +210,7 @@ const UserTemplate: VFC = () => {
               <Route path="*" element={<Navigate to="" replace />} />
             </Routes>
           </StyledContentWrapper>
-          <SideMenu hyperLinkListProps={hyperLinkListProps} />
+          <SideMenu maxWidth="250px" hyperLinkListProps={hyperLinkListProps} />
         </StyledWrapper>
       </StyledContainer>
     </Template>

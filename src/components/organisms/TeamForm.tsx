@@ -13,6 +13,7 @@ import InputForm, { InputFormProps } from '../molecules/InputForm';
 import TextAreaForm, { TextAreaFormProps } from '../molecules/TextAreaForm';
 import Label from '../atoms/Label';
 import UserCardList from './UserCardList';
+import { ACCEPT, DELETE } from '../../utils/colors';
 
 type InputFieldProps = Pick<InputFormProps, 'inputProps' | 'labelProps'>;
 
@@ -141,7 +142,7 @@ const TeamForm: VFC<TeamFormProps> = ({
     return {
       user,
       button: {
-        background: isInvitee ? '#FF0000' : '#0066FF',
+        background: isInvitee ? DELETE : ACCEPT,
         fontSize: '0.8em',
         handleClick: isInvitee
           ? () => removeUserFromInviteeIds(user.id)
@@ -156,7 +157,7 @@ const TeamForm: VFC<TeamFormProps> = ({
   const inviteeCards = users.invitees.map((user) => ({
     user,
     button: {
-      background: '#FF0000',
+      background: DELETE,
       fontSize: '0.8em',
       handleClick: () => removeUserFromInviteeIds(user.id),
       height: '25px',
@@ -168,7 +169,7 @@ const TeamForm: VFC<TeamFormProps> = ({
   const memberCards = users.members.map((user) => ({
     user,
     button: {
-      background: '#FF0000',
+      background: DELETE,
       disabled: users.members.length === 1,
       fontSize: '0.8em',
       handleClick: () => removeUserFromMemberIds(user.id),
