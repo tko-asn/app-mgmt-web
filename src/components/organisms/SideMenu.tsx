@@ -1,26 +1,29 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import styled from 'styled-components';
 import HyperLinkList, { HyperLinkListProps } from '../molecules/HyperLinkList';
 
 export type SideMenuProps = {
   hyperLinkListProps: HyperLinkListProps;
   width?: string;
+  maxWidth?: string;
 };
 
-const SideMenu: VFC<SideMenuProps> = ({ hyperLinkListProps, width }) => {
+const SideMenu: VFC<SideMenuProps> = memo(({ hyperLinkListProps, width, maxWidth }) => {
   return (
-    <StyldNav width={width}>
+    <StyldNav width={width} maxWidth={maxWidth}>
       <HyperLinkList {...hyperLinkListProps} />
     </StyldNav>
   );
-};
+});
 
-const StyldNav = styled.nav<Pick<SideMenuProps, 'width'>>`
-  background: #3399CC;
-  box-shadow: 2px 0 2px silver, -2px 0 2px silver;
+const StyldNav = styled.nav<Pick<SideMenuProps, 'width' | 'maxWidth'>>`
+  background: #e6e6e6;
+  border-left: 1px solid #cccccc;
+  border-right: 1px solid #cccccc;
   display: flex;
   flex-direction: column;
   width: ${(props) => (props.width ? props.width : '30%')};
+  max-width: ${(props) => (props.maxWidth ? props.maxWidth : 'initial')};
 `;
 
 export default SideMenu;

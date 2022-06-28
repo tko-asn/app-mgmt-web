@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import Input, { InputProps } from '../atoms/Input';
 import Label, { LabelProps } from '../atoms/Label';
 
@@ -13,7 +13,7 @@ export type InputFormProps = {
   stateSetter?: (stateKey: string, value: string) => void;
 };
 
-const InputForm: VFC<InputFormProps> = ({
+const InputForm: VFC<InputFormProps> = memo(({
   inputProps,
   labelProps,
   scalarTypeStateSetter,
@@ -34,6 +34,6 @@ const InputForm: VFC<InputFormProps> = ({
       )}
     </>
   );
-};
+});
 
 export default InputForm;

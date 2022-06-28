@@ -1,9 +1,11 @@
+import styled from 'styled-components';
 import { useLazyQuery, useMutation } from '@apollo/client';
-import { useEffect, useState, VFC } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, VFC } from 'react';
 import { useProfile } from '../../contexts/ProfileContext';
 import { CREATE_SVC } from '../../queries/svc';
-import { FETCH_TEAMS } from '../../queries/team';
-import { AppInput, SimpleTeam } from '../../utils/types';
+import { FETCH_TEAMS_BY_TEAM_NAME_AND_MEMBER_ID } from '../../queries/team';
+import { AppFormState, SimpleTeam } from '../../utils/types';
 import Input from '../atoms/Input';
 import Padding from '../atoms/Padding';
 import PostForm from '../organisms/PostForm';
@@ -12,17 +14,19 @@ import UserCardList from '../organisms/UserCardList';
 import Template from '../templates/Template';
 import { descriptionField, nameField, urlField } from './props/postForm';
 import Label from '../atoms/Label';
-import MainContainer from '../atoms/MainContainer';
 import TeamLinkList from '../organisms/TeamLinkList';
+import { validateAppDataAndGetErrorMessages } from '../../utils/form';
+import { useMessages } from '../../hooks/useMessages';
 
 const PostCreationPage: VFC = () => {
-  const [fetchTeams] = useLazyQuery(FETCH_TEAMS);
+  const [fetchTeams] = useLazyQuery(FETCH_TEAMS_BY_TEAM_NAME_AND_MEMBER_ID);
   const [createSvc] = useMutation(CREATE_SVC);
   const { profile } = useProfile();
+  const { messages, setErrorMessages, initializeErrorMessages } = useMessages();
 
   const initialFormOptionsState = {
     checkedValue: 'developer',
-    teamName: '',
+    searchedTeam: '',
   };
 
   type TeamData = {
@@ -35,11 +39,22 @@ const PostCreationPage: VFC = () => {
     candidateTeams: [],
   };
 
+  const navigate = useNavigate();
+
   const [formOptions, setFormOptions] = useState(initialFormOptionsState);
   const [teamData, setTeamData] = useState<TeamData>(initialTeamData);
 
-  const submitPostData = async (variables: AppInput) => {
-    await createSvc({ variables });
+  const submitPostData = async (variables: AppFormState) => {
+    const errors = validateAppDataAndGetErrorMessages(variables);
+    if (formOptions.checkedValue === 'team' && !teamData.selectedTeam) {
+      errors.push('チームを選択してください。');
+    }
+    if (errors.length) {
+      setErrorMessages(errors);
+      return;
+    }
+    const { data: { createSvc: { id } } } = await createSvc({ variables });
+    navigate(`/app/${id}`);
   };
 
   const getTeamMenu = (teams: SimpleTeam[], isAllowToSetData?: boolean) => {
@@ -63,7 +78,7 @@ const PostCreationPage: VFC = () => {
     },
   };
 
-  const radioInputForms = [
+  const radioInputForms = useMemo(() => [
     {
       labelProps: {
         fontSize: '0.8em',
@@ -73,7 +88,10 @@ const PostCreationPage: VFC = () => {
       radioInputProps: {
         id: 'developer',
         checked: formOptions.checkedValue === 'developer',
-        handleChange: () => setFormOptions({ checkedValue: 'developer', teamName: '' }),
+        handleChange: () => setFormOptions({
+          checkedValue: 'developer',
+          searchedTeam: '',
+        }),
       },
     },
     {
@@ -90,21 +108,24 @@ const PostCreationPage: VFC = () => {
         ),
       },
     },
-  ];
+  ], [formOptions.checkedValue]);
 
   const teamNameInputProps = {
     id: 'teamName',
     placeholder: 'チーム名から検索',
-    value: formOptions.teamName,
+    value: formOptions.searchedTeam,
   };
 
   const cards = [{ user: profile }];
 
   useEffect(() => {
     if (formOptions.checkedValue === 'team') {
-      const variables = { teamName: formOptions.teamName };
+      const variables = {
+        teamName: formOptions.searchedTeam,
+        memberId: profile.id,
+      };
       fetchTeams({ variables }).then(
-        ({ data: { getTeamsByTeamName: result } }) => {
+        ({ data: { getTeamsByTeamNameAndMemberId: result } }) => {
           setTeamData({ ...teamData, candidateTeams: result });
         },
       );
@@ -112,11 +133,11 @@ const PostCreationPage: VFC = () => {
     } else if (formOptions.checkedValue === 'developer') {
       setTeamData(initialTeamData);
     }
-  }, [formOptions]);
+  }, [formOptions, profile.id]);
 
   return (
-    <Template>
-      <MainContainer>
+    <Template messages={messages} deleteErrorMessages={initializeErrorMessages}>
+      <StyledContainer>
         <PostForm
           buttonProps={buttonProps}
           descriptionField={descriptionField}
@@ -139,7 +160,7 @@ const PostCreationPage: VFC = () => {
                 <>
                   <Input
                     handleChange={(value: string) => setFormOptions(
-                      { ...formOptions, teamName: value },
+                      { ...formOptions, searchedTeam: value },
                     )}
                     {...teamNameInputProps}
                   />
@@ -162,9 +183,15 @@ const PostCreationPage: VFC = () => {
             </>
           </Padding>
         </PostForm>
-      </MainContainer>
+      </StyledContainer>
     </Template>
   );
 };
+
+const StyledContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+`;
 
 export default PostCreationPage;

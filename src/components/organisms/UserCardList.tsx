@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import styled from 'styled-components';
 import { Profile } from '../../utils/types';
 import Button, { ButtonProps } from '../atoms/Button';
@@ -15,7 +15,7 @@ export type UserCardListProps = {
   noCardText?: string;
 };
 
-const UserCardList: VFC<UserCardListProps> = ({
+const UserCardList: VFC<UserCardListProps> = memo(({
   cardMinHeight,
   cards,
   noCardText,
@@ -33,6 +33,7 @@ const UserCardList: VFC<UserCardListProps> = ({
             hasIcon
             imageSize="30px"
             parentProps={cardParentProps}
+            sidePadding="0px"
             src={card.user.icon}
             textFontSize="0.9em"
             textValue={card.user.username}
@@ -42,7 +43,7 @@ const UserCardList: VFC<UserCardListProps> = ({
       ))}
     </StyledUserCardList>
   );
-};
+});
 
 const StyledUserCardList = styled.div`
   background: #f7f3f3;
@@ -50,6 +51,7 @@ const StyledUserCardList = styled.div`
   border-radius: 5px;
   max-height: 200px;
   overflow-y: scroll;
+  padding: 0 10px;
 `;
 
 const StyledUserCard = styled.div`

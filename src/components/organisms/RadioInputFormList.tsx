@@ -1,4 +1,4 @@
-import type { VFC } from 'react';
+import { memo, VFC } from 'react';
 import Label from '../atoms/Label';
 import RadioInputForm, {
   RadioInputFormProps,
@@ -11,7 +11,7 @@ export type RadioInputFormListProps = {
   title: string;
 };
 
-const RadioInputFormList: VFC<RadioInputFormListProps> = ({
+const RadioInputFormList: VFC<RadioInputFormListProps> = memo(({
   fontSize,
   fontWeight,
   radioInputForms,
@@ -28,6 +28,6 @@ const RadioInputFormList: VFC<RadioInputFormListProps> = ({
       {forms}
     </>
   );
-};
+});
 
 export default RadioInputFormList;

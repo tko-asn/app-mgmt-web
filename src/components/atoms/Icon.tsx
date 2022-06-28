@@ -8,13 +8,12 @@ export type IconProps = {
   className?: string;
   handleClick?: (event: MouseEvent<HTMLDivElement>) => void;
   imageSize?: string;
-  isPointer?: boolean;
   src?: string;
 };
 
 const Icon: VFC<IconProps> = ({ className, handleClick, imageSize, src }) => {
   const isButton = typeof handleClick === 'function';
-  const [isShowOverlay, setIsShowOverlay] = useState(false);
+  const [showsOverlay, setShowsOverlay] = useState(false);
 
   return (
     <StyledDiv
@@ -22,16 +21,16 @@ const Icon: VFC<IconProps> = ({ className, handleClick, imageSize, src }) => {
       imageSize={imageSize}
       isPointer={isButton}
       onClick={isButton ? handleClick : () => {}}
-      onMouseEnter={() => setIsShowOverlay(true)}
-      onMouseLeave={() => setIsShowOverlay(false)}
+      onMouseEnter={() => setShowsOverlay(true)}
+      onMouseLeave={() => setShowsOverlay(false)}
     >
       <StyledImage alt="" imageSize={imageSize} src={src} />
-      {isButton && isShowOverlay && <StyledOverlay>編集</StyledOverlay>}
+      {isButton && showsOverlay && <StyledOverlay>編集</StyledOverlay>}
     </StyledDiv>
   );
 };
 
-const StyledDiv = styled.div<Pick<IconProps, 'isPointer' | 'imageSize'>>`
+const StyledDiv = styled.div<Pick<IconProps, 'imageSize'> & { isPointer: boolean }>`
   background: silver;
   border-radius: 50%;
   cursor: ${(props) => (props.isPointer ? 'pointer' : 'default')};

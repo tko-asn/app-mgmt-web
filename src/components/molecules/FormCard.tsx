@@ -22,7 +22,7 @@ const StyledPadding = styled(Padding)<Pick<FormCardProps, 'width'>>`
   background: #fff;
   border: 2px solid gray;
   border-radius: 3px;
-  max-width: 400px;
+  max-width: 450px;
   width: ${(props) => (props.width ? props.width : '50%')};
 `;
 

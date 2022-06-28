@@ -1,8 +1,8 @@
-import { useMutation } from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, VFC } from 'react';
 import { useProfile } from '../contexts/ProfileContext';
-import { FETCH_OR_CREATE_PROFILE } from '../queries/profile';
+import { FETCH_PROFILE_BY_USER_ID } from '../queries/profile';
 
 export type GlobalStateProps = { children: JSX.Element };
 
@@ -14,18 +14,22 @@ export type GlobalStateProps = { children: JSX.Element };
 const GlobalState: VFC<GlobalStateProps> = ({ children }) => {
   const { user } = useAuth0();
   const { profile, setProfile } = useProfile();
-  const [fetchProfile] = useMutation(FETCH_OR_CREATE_PROFILE);
+  const [fetchProfile, { data }] = useLazyQuery(FETCH_PROFILE_BY_USER_ID);
 
   useEffect(() => {
-    if (user) {
-      const variables = {
-        userId: user.sub,
-        username: user[`${process.env.REACT_APP_URL}username`],
-      };
-      fetchProfile({ variables })
-        .then(({ data: { getOrCreateProfile: result } }) => {
-          setProfile({ ...profile, ...result });
-        });
+    if (data?.getProfileByUserId) {
+      const { id, username, selfIntro, userId } = data.getProfileByUserId;
+      setProfile({ ...profile, id, username, selfIntro, userId });
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (user && user.sub) {
+      /*
+        userIdはauth0側から配布されるidで"auth0|"というプレフィックスが
+        ついているので取り除く
+      */
+      fetchProfile({ variables: { userId: user.sub.substring(6) } });
     }
   }, [user]);
 

@@ -1,6 +1,5 @@
 import { useEffect, useState, VFC } from 'react';
 import { useLazyQuery } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
 import {
   FETCH_PROFILES_BY_IDS,
   FETCH_PROFILES_BY_USERNAME,
@@ -14,6 +13,7 @@ import InputForm, { InputFormProps } from '../molecules/InputForm';
 import TextAreaForm, { TextAreaFormProps } from '../molecules/TextAreaForm';
 import Label from '../atoms/Label';
 import UserCardList from './UserCardList';
+import { ACCEPT, DELETE } from '../../utils/colors';
 
 type InputFieldProps = Pick<InputFormProps, 'inputProps' | 'labelProps'>;
 
@@ -41,7 +41,6 @@ const TeamForm: VFC<TeamFormProps> = ({
 }) => {
   const [fetchProfilesByUsername] = useLazyQuery(FETCH_PROFILES_BY_USERNAME);
   const [fetchProfilesByIds] = useLazyQuery(FETCH_PROFILES_BY_IDS);
-  const navigate = useNavigate();
 
   type Profile = {
     id: string;
@@ -108,11 +107,6 @@ const TeamForm: VFC<TeamFormProps> = ({
     }
   };
 
-  const submitData = async () => {
-    await submitTeamData(team);
-    navigate('/top');
-  };
-
   const teamNameInputProps = {
     ...teamNameField.inputProps,
     value: team.teamName,
@@ -148,7 +142,7 @@ const TeamForm: VFC<TeamFormProps> = ({
     return {
       user,
       button: {
-        background: isInvitee ? '#FF0000' : '#0066FF',
+        background: isInvitee ? DELETE : ACCEPT,
         fontSize: '0.8em',
         handleClick: isInvitee
           ? () => removeUserFromInviteeIds(user.id)
@@ -163,7 +157,7 @@ const TeamForm: VFC<TeamFormProps> = ({
   const inviteeCards = users.invitees.map((user) => ({
     user,
     button: {
-      background: '#FF0000',
+      background: DELETE,
       fontSize: '0.8em',
       handleClick: () => removeUserFromInviteeIds(user.id),
       height: '25px',
@@ -175,7 +169,7 @@ const TeamForm: VFC<TeamFormProps> = ({
   const memberCards = users.members.map((user) => ({
     user,
     button: {
-      background: '#FF0000',
+      background: DELETE,
       disabled: users.members.length === 1,
       fontSize: '0.8em',
       handleClick: () => removeUserFromMemberIds(user.id),
@@ -229,7 +223,7 @@ const TeamForm: VFC<TeamFormProps> = ({
           <UserCardList cards={memberCards} noCardText="メンバーがいません" />
         </Padding>
         <Padding>
-          <Button handleClick={() => submitData()} {...buttonProps} />
+          <Button handleClick={() => submitTeamData(team)} {...buttonProps} />
         </Padding>
       </>
     </FormCard>
