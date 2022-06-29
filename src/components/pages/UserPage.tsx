@@ -51,7 +51,7 @@ const UserTemplate: VFC = () => {
       to: '/edit/profile',
     },
     card2Props: {
-      subTextValue: '0',
+      subTextValue: `${appsData?.getSvcsByProfileId.svcs.length || 0} 個`,
       textValue: 'アプリ',
       to: '/apps',
     },
@@ -61,7 +61,7 @@ const UserTemplate: VFC = () => {
         imageSize: '150px',
       },
     },
-  }), [profileData, profileId]);
+  }), [profileData, profileId, appsData]);
 
   const hyperLinkListProps = useMemo(
     () => ({
