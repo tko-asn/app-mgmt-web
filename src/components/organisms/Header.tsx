@@ -17,9 +17,8 @@ const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
       <StyledContainer>
         <HyperLink
           height="35px"
-          name="logo"
-          position="center"
-          width="80px"
+          name="AppMGMT"
+          width="150px"
           to="/top"
         />
         <StyledMenuWrapper
@@ -30,7 +29,7 @@ const Header: VFC<HeaderProps> = ({ menuName, menus }) => {
             handleClick={() => {}}
             height="35px"
             name={menuName}
-            position="center"
+            position="right"
             width="100px"
           />
           {showsDropDownMenu && <StyledDropDownMenu links={menus} />}
