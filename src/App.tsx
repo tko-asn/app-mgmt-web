@@ -109,6 +109,7 @@ const App: VFC = () => {
                 <Route path="/create/profile" element={<ProfileCreationPage />} />
                 <Route path="/edit/profile" element={<ProtectedRoute component={ProfileEditingPage} />} />
                 <Route path="/error/*" element={<ErrorPage />} />
+                <Route path="/" element={<Navigate to="/top" replace />} />
                 <Route path="*" element={<Navigate to="/error/notFound" replace />} />
               </Routes>
             </GlobalState>
